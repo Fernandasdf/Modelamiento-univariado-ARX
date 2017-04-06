@@ -53,7 +53,7 @@ inverse.step.test <- function(
   df<-data.frame(pred[before.drop:fin],time)
   plot<-ggplot(df, aes(x = time, y = pred.before.drop.fin.)) + geom_line()
   print(plot)
-  ggsave(paste('C:/Users/Feffyta/Documents/Universidad/tesis/Programas/Entrenamiento en R/ARX/Results/Univariado/ARX/Escalones TEC/stepResponse_',name.subject,'_','.jpg'))
+  ggsave(paste('C:/Users/Feffyta/Documents/Universidad/tesis/Programas/Entrenamiento en R/ARX/Results/Univariado/ARX/Escalones TEC/stepResponse_',name.subject,'.jpg'))
   
   
 }
