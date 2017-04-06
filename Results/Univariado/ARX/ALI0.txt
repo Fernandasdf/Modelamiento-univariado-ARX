@@ -1,0 +1,2 @@
+"MABP" "CBFV" "nu" "cost" "train.cor" "test.cor" "fold" "modelo"
+"1" 7 3 0.5 1024 0.9773 0.612304130431518 1 "No"
