@@ -43,17 +43,27 @@ inverse.step.test <- function(
   pred <- round(pred, 3)
   test.cor.step <<- cor(response.ARX.model,y)
   
-  before.drop = 150*time.sample
-  fin = 300*time.sample
-  #time <- length(pred[before.drop:fin])*0.6
-  
-  time <- seq(before.drop,fin,0.6)
-  time <-seq(1,length(time),0.6)
-  fin = length(time)+before.drop-1
-  df<-data.frame(pred[before.drop:fin],time)
-  plot<-ggplot(df, aes(x = time, y = pred.before.drop.fin.)) + geom_line()
+  ts = 0.6
+  before.drop = 10.2 #seconds
+  step.duration = 42 #seconds
+  step.length = step.duration/time.sample
+  #fin = 300*time.sample
+  half.step = floor(length(inverse.step[,1])/2)
+  ajuste = pred[half.step] - 0.8
+ 
+  pred <- pred[(half.step-before.drop/ts):(half.step-before.drop/ts+step.length)]-ajuste
+
+  time <- seq(1,length(pred),0.6)
+  pred<-pred-ajuste
+  df <- data.frame(pred,time[1:length(pred)])
+  #colnames(df) <- c("VFSC estimado (cm/seg)","Tiempo (seg)")
+  title <- paste('Step response subject: ',name.subject)
+  plot<-ggplot(df, aes(x = time.1.length.pred.., y = pred)) +
+               geom_line() +
+               xlab("Tiempo (seg)") + ylab("VFSC estimado (cm/seg)") +
+               ggtitle(title) 
   print(plot)
-  ggsave(paste('C:/Users/Feffyta/Documents/Universidad/tesis/Programas/Entrenamiento en R/ARX/Results/Univariado/ARX/Escalones TEC/stepResponse_',name.subject,'.jpg'))
+  ggsave(paste('C:/Users/Feffyta/Documents/Universidad/tesis/Programas/Entrenamiento en R/Modelamiento-univariado-ARX/Results/Univariado/ARX/stepResponse_',name.subject,'.jpg'), width = 8,height = 7)
   
   
 }

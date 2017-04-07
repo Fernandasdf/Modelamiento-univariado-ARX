@@ -60,8 +60,35 @@ process.parallel <- function(
 
 run<- function(
   
-  nworkers =3, #detectCores(),#pueden ser máx 48, pero con 32 o 16 andará bien
+  nworkers =3, #detectCores(),#pueden ser m?x 48, pero con 32 o 16 andar? bien
   src.basenames = c(
+                    'AITK',
+                    'ALI0',
+                    'BOAM',
+                    'BUTL',
+                    'COWL',
+                    'DANE',
+                    'DENI',
+                    'GREG',
+                    'GROO',
+                    'HAGG',
+                    'HAST',
+                    'HEPP',
+                    'HIGH',
+                    'JEET',
+                    'JONE',
+                    'KENT',
+                    'KHAN',
+                    'KNOW',
+                    'MCDO',
+                    'MORR',
+                    'NOBL',
+                    'NOLA',
+                    'PARK',
+                    'PATI',
+                    'PERK',
+                    'PERR',
+                    'PULL',
                     'RANS',
                     'RICH',
                     'SLAC',
@@ -75,7 +102,7 @@ run<- function(
   model.folder = "ARX"
 )
 {
-  time.sample <<- 0.6
+ 
   src.dir <- file.path(script.dir, src.folder)
   tgt.dir <- file.path(script.dir, results.folder,type.folder,model.folder)
   dir.create(tgt.dir, showWarnings = FALSE, recursive = TRUE)
@@ -110,7 +137,7 @@ run<- function(
   start1.time <- Sys.time()
   for (src.basename in src.basenames) {
     name.subject <<- src.basename
-    datos =read.table(paste("C:\\Users\\Feffyta\\Documents\\Universidad\\tesis\\Programas\\programaEscalon-Fernanda\\prueba_feffyta\\Busca Escalon ARX\\Parametros\\ARX\\",src.basename,".txt",sep=""),header = T, sep=" ")
+    datos =read.table(paste("C:\\Users\\Feffyta\\Documents\\Universidad\\tesis\\Programas\\Programa escalon Matlab\\Prueba escalon ARX\\Parametros\\ARX\\",src.basename,".txt",sep=""),header = T, sep=" ")
     cat("instance ", src.basename, "\n")
     for (i in seq(1,1,1)){
       best.model.number <<- i
