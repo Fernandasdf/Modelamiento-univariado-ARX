@@ -1,7 +1,8 @@
 inverse.step.test <- function(
   model,
   inverse.step.lags,
-  lag
+  lag,
+  inverse.step
 ){
   x <- inverse.step.lags$folded.signal["MABP"]
   y <- inverse.step.lags$folded.signal["CBFV"]
@@ -46,24 +47,44 @@ inverse.step.test <- function(
   ts = 0.6
   before.drop = 10.2 #seconds
   step.duration = 42 #seconds
-  step.length = step.duration/time.sample
+  step.length = step.duration/ts
   #fin = 300*time.sample
   half.step = floor(length(inverse.step[,1])/2)
-  ajuste = pred[half.step] - 0.8
+  ajuste = pred[half.step-before.drop/ts] - 0.8
  
   pred <- pred[(half.step-before.drop/ts):(half.step-before.drop/ts+step.length)]-ajuste
-
-  time <- seq(1,length(pred),0.6)
-  pred<-pred-ajuste
-  df <- data.frame(pred,time[1:length(pred)])
-  #colnames(df) <- c("VFSC estimado (cm/seg)","Tiempo (seg)")
-  title <- paste('Step response subject: ',name.subject)
-  plot<-ggplot(df, aes(x = time.1.length.pred.., y = pred)) +
-               geom_line() +
-               xlab("Tiempo (seg)") + ylab("VFSC estimado (cm/seg)") +
-               ggtitle(title) 
-  print(plot)
-  ggsave(paste('C:/Users/Feffyta/Documents/Universidad/tesis/Programas/Entrenamiento en R/Modelamiento-univariado-ARX/Results/Univariado/ARX/stepResponse_',name.subject,'.jpg'), width = 8,height = 7)
+  
+  caida <- min(pred[1:((before.drop+3.6)/ts)])
+  varEstabilizacion <- var(pred[((before.drop+12)/ts):((before.drop+24)/ts)])
+  maximo <- max(pred[1:((before.drop+30)/ts)])
+  avgEstable <- mean(pred[((before.drop+12)/ts):((before.drop+30)/ts)])
+  
+  if(caida<=0.5 && caida>=-0.2 && varEstabilizacion<0.002 && maximo <=1.2 && avgEstable>caida){
+    print("condicion de salida!")
+    time <- seq(0.6,length(pred),0.6)
+    largo.step <- nrow(inverse.step)
+    ajuste.escalon <- 35/ts
+    largo.step <- largo.step - ajuste.escalon
+    df <- data.frame(pred = pred,
+                     time = time[1:length(pred)],
+                     ABP = inverse.step$MABP[(largo.step-length(pred)+1):largo.step])
+    title <- paste('Step response subject: ',name.subject)
+    plot<-ggplot(df, aes(x=time)) +
+      geom_line(aes(y=ABP, colour = "ABP inverse step")) +
+      geom_line(aes(y=pred,colour = "CBFV response")) +
+      xlab("Tiempo (seg)") + ylab("VFSC estimado (cm/seg)") +
+      scale_colour_manual("",
+                          breaks = c("CBFV response","ABP inverse step"),
+                          values=c("red","blue")) +
+      ggtitle(title) +
+      theme(panel.background = element_rect(fill = 'gray95',colour='black'),plot.title = element_text(hjust = 0.5))
+    
+    
+    print(plot)
+    ggsave(paste(getwd(),'/graficos/',name.subject,'.jpg'), width = 8,height = 7)
+    
+  }
+  
   
   
 }
@@ -87,7 +108,8 @@ make.inverseStep <- function(
   colnames(inverse.step) <- c("MABP","CBFV")
    
   signal.step <- retardos_multi_inverseStep(inverse.step, lag)
-
+  
+  list <- list("inverse.step" = inverse.step, "inverse.step.lags" = signal.step)
 }
 
 lag.abp <- function(
@@ -127,7 +149,8 @@ training <- function(
   signal.train,
   signal.test,
   inputs,
-  inverse.step.lags
+  inverse.step.lags,
+  inverse.step
 )
 {
   fmla.str <- paste(inputs, collapse = " + ")
@@ -137,8 +160,8 @@ training <- function(
   # print(fmla)
    # print(signal.train$folded.signal)
    # print(signal.test$folded.signal)
-  params <- list(formula = fmla, data = signal.train$folded.signal, scale = FALSE)
-  params <- c(params, list(type = "nu-regression", kernel = "linear"))
+  params <- list(formula = fmla, data = signal.train$folded.signal)
+  params <- c(params, list(type = "nu-regression", kernel = "linear", scale = FALSE, epsilon = 0.001))
   params <- c(params, parameter)
   
   start.time <- Sys.time()
@@ -155,7 +178,8 @@ training <- function(
     signal.test,
     inputs,
     model,
-    inverse.step.lags
+    inverse.step.lags,
+    inverse.step
   )
   
   results <- list(models = list(model), stats = stats) 
@@ -171,7 +195,8 @@ eval.model <- function(
   signal.test,
   inputs,
   model,
-  inverse.step.lags
+  inverse.step.lags,
+  inverse.step
 ){
   fitted.signal <- round(model[["fitted"]], 4)
   train.cor <- cor(fitted.signal, signal.train$folded.signal["CBFV"])
@@ -239,7 +264,7 @@ eval.model <- function(
   
   print(test.cor)
   
-  inverse.step.result <- inverse.step.test(model,inverse.step.lags,lag)
+  inverse.step.result <- inverse.step.test(model,inverse.step.lags,lag,inverse.step)
 
   data.frame(
     MABP = lag["MABP"],
@@ -374,9 +399,10 @@ get.results <- function(
   
   inputs <- c(signal.train[["lagged.columns.names"]],input.var.names)
   inputs <- sort(inputs, decreasing = TRUE)
-  inverse.step.lags <- make.inverseStep(lag) #obtiene la matriz de retrasos a partir del escalon inverso
-  
-  output = apply(parameter, 1,function(p) training(p,lag,fold,input.var.names,output.var.names,signal.train,signal.test,inputs,inverse.step.lags))
+  list<- make.inverseStep(lag) #obtiene la matriz de retrasos a partir del escalon inverso
+  inverse.step.lags <- list$inverse.step.lags
+  inverse.step <- list$inverse.step
+  output = apply(parameter, 1,function(p) training(p,lag,fold,input.var.names,output.var.names,signal.train,signal.test,inputs,inverse.step.lags,inverse.step))
   
   models <- sapply(output, function(l) l[[1]])
   stats.list <- lapply(output, function(l) l[[2]])

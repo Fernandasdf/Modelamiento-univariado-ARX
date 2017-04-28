@@ -53,7 +53,7 @@ process.parallel <- function(
     i <- 1:keep.nstats
     lags.results <- lags.results[i, ]
   }
-  
+  #aqui partir la prueba del escalon
   rownames(lags.results) <- NULL
   saveRDS(lags.results, file = tgt.file, compress = FALSE)
 }
@@ -62,23 +62,6 @@ run<- function(
   
   nworkers =3, #detectCores(),#pueden ser m?x 48, pero con 32 o 16 andar? bien
   src.basenames = c(
-                    'AITK',
-                    'ALI0',
-                    'BOAM',
-                    'BUTL',
-                    'COWL',
-                    'DANE',
-                    'DENI',
-                    'GREG',
-                    'GROO',
-                    'HAGG',
-                    'HAST',
-                    'HEPP',
-                    'HIGH',
-                    'JEET',
-                    'JONE',
-                    'KENT',
-                    'KHAN',
                     'KNOW',
                     'MCDO',
                     'MORR',
@@ -137,7 +120,7 @@ run<- function(
   start1.time <- Sys.time()
   for (src.basename in src.basenames) {
     name.subject <<- src.basename
-    datos =read.table(paste("C:\\Users\\Feffyta\\Documents\\Universidad\\tesis\\Programas\\Programa escalon Matlab\\Prueba escalon ARX\\Parametros\\ARX\\",src.basename,".txt",sep=""),header = T, sep=" ")
+    datos =read.table(paste("C:\\Users\\Feffyta\\Documents\\Universidad\\tesis\\Programas\\Programa escalon Matlab\\Prueba escalon ARX\\Parametros\\TEC\\ARX\\",src.basename,".txt",sep=""),header = T, sep=" ")
     cat("instance ", src.basename, "\n")
     for (i in seq(1,1,1)){
       best.model.number <<- i
@@ -146,7 +129,8 @@ run<- function(
         cost = 10000
       }
       nu = datos[i,"nu"]
-      lags <- list(MABP = datos[i,"MABP"],CBFV = datos[i,"CBFV"],fold = datos[i,"fold"])
+      lags <- list(MABP = datos[i,"MABP"],CBFV = datos[i,"CBFV"],fold =1)# datos[i,"fold"])
+      #lags <- list(MABP = 6,CBFV = 3,fold = 1)
       parametros <- list(
         nu = nu,
         cost = cost
