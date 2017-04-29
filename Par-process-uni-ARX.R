@@ -42,8 +42,8 @@ inverse.step.test <- function(
   y <-  y[start:length(y$CBFV),1]
   pred <- response.ARX.model
   pred <- round(pred, 3)
-  test.cor.step <<- cor(response.ARX.model,y)
-  
+  #test.cor.step <- cor(pred,y)
+  #print(test.cor.step)
   ts = 0.6
   before.drop = 10.2 #seconds
   step.duration = 42 #seconds
@@ -58,9 +58,11 @@ inverse.step.test <- function(
   varEstabilizacion <- var(pred[((before.drop+12)/ts):((before.drop+24)/ts)])
   maximo <- max(pred[1:((before.drop+30)/ts)])
   avgEstable <- mean(pred[((before.drop+12)/ts):((before.drop+30)/ts)])
-  
+  stepTest=0
+  list <- NULL
   if(caida<=0.5 && caida>=-0.2 && varEstabilizacion<0.002 && maximo <=1.2 && avgEstable>caida){
-    print("condicion de salida!")
+    stepTest=1
+    #print("condicion de salida!")
     time <- seq(0.6,length(pred),0.6)
     largo.step <- nrow(inverse.step)
     ajuste.escalon <- 35/ts
@@ -78,14 +80,14 @@ inverse.step.test <- function(
                           values=c("red","blue")) +
       ggtitle(title) +
       theme(panel.background = element_rect(fill = 'gray95',colour='black'),plot.title = element_text(hjust = 0.5))
-    
-    
-    print(plot)
-    ggsave(paste(getwd(),'/graficos/',name.subject,'.jpg'), width = 8,height = 7)
+
+
+    #print(plot)
+    ggsave(paste(getwd(),'/graficos/stepResponse_',name.subject,'.jpg',sep=""), width = 8,height = 7)
     
   }
   
-  
+  list<-list("stepTest"=stepTest)
   
 }
 make.inverseStep <- function(
@@ -150,7 +152,8 @@ training <- function(
   signal.test,
   inputs,
   inverse.step.lags,
-  inverse.step
+  inverse.step,
+  step.test
 )
 {
   fmla.str <- paste(inputs, collapse = " + ")
@@ -179,10 +182,11 @@ training <- function(
     inputs,
     model,
     inverse.step.lags,
-    inverse.step
+    inverse.step,
+    step.test
   )
   
-  results <- list(models = list(model), stats = stats) 
+  results <- list(models = list(model), stats = stats, "model"=model) 
   
 }
 eval.model <- function(
@@ -196,7 +200,8 @@ eval.model <- function(
   inputs,
   model,
   inverse.step.lags,
-  inverse.step
+  inverse.step,
+  step.test
 ){
   fitted.signal <- round(model[["fitted"]], 4)
   train.cor <- cor(fitted.signal, signal.train$folded.signal["CBFV"])
@@ -262,10 +267,12 @@ eval.model <- function(
   test.cor <- cor(response.ARX.model,y)
   
   
-  print(test.cor)
-  
-  inverse.step.result <- inverse.step.test(model,inverse.step.lags,lag,inverse.step)
-
+  #print(test.cor)
+  stepTest = 0
+  if(step.test==TRUE){
+    inverse.step.result <- inverse.step.test(model,inverse.step.lags,lag,inverse.step)
+    stepTest = inverse.step.result$stepTest
+  }
   data.frame(
     MABP = lag["MABP"],
     CBFV = lag["CBFV"],
@@ -274,7 +281,7 @@ eval.model <- function(
     train.cor = train.cor,
     test.cor = test.cor,
     fold = fold,
-    test.cor.step = test.cor.step
+    stepTest = stepTest
   )
 }
 retardos_multi <- function(
@@ -282,13 +289,13 @@ retardos_multi <- function(
   lags
 )
 {
-  signal <- read.table(arch_entrada, col.names = c("CBFV","MABP","PIC") )
-  signal[['CBFV']] <- round(signal[['CBFV']],4)
+  signal <- read.table(arch_entrada, col.names = c("CBFVd","CBFVi","MABP") )
+  signal[['CBFVd']] <- round(signal[['CBFVd']],4)
   signal[['MABP']] <- round(signal[['MABP']],4)
-  signal[['PIC']] <- round(signal[['PIC']],4) 
+  signal[['CBFVi']] <- round(signal[['CBFVi']],4) 
   signal.uni <- data.frame(
     MABP = signal[['MABP']],
-    CBFV = signal[['CBFV']]
+    CBFV = signal[['CBFVd']]
   )  
   max.lag <- max(unlist(lags)) + 1
   indices <- 1:nrow(signal.uni)
@@ -364,7 +371,8 @@ get.results <- function(
     src.basename,
     src.dir,
     src.ext,
-    keep.nstats
+    keep.nstats,
+    step.test
     
   )
 {
@@ -399,31 +407,43 @@ get.results <- function(
   
   inputs <- c(signal.train[["lagged.columns.names"]],input.var.names)
   inputs <- sort(inputs, decreasing = TRUE)
-  list<- make.inverseStep(lag) #obtiene la matriz de retrasos a partir del escalon inverso
-  inverse.step.lags <- list$inverse.step.lags
-  inverse.step <- list$inverse.step
-  output = apply(parameter, 1,function(p) training(p,lag,fold,input.var.names,output.var.names,signal.train,signal.test,inputs,inverse.step.lags,inverse.step))
   
-  models <- sapply(output, function(l) l[[1]])
-  stats.list <- lapply(output, function(l) l[[2]])
-  stats <- do.call(rbind, stats.list)
-  colnames(stats) <- c("MABP","CBFV","nu","cost","train.cor","test.cor","fold","test.cor.step")
+  inverse.step.lags <- NULL
+  inverse.step <- NULL
+    
+  if(step.test==FALSE){
+    output = apply(parameter, 1,function(p) training(p,lag,fold,input.var.names,output.var.names,signal.train,signal.test,inputs,inverse.step.lags,inverse.step,step.test))
+    
+    models <- sapply(output, function(l) l[[1]])
+    stats.list <- lapply(output, function(l) l[[2]])
+    stats <- do.call(rbind, stats.list)
+    colnames(stats) <- c("MABP","CBFV","nu","cost","train.cor","test.cor","fold","stepTest")
+    
+    
+    
+     i <- order(
+       -stats["test.cor"]
+     )
   
-  
-  
-   i <- order(
-     -stats["test.cor"]
-   )
-
-   stats <- stats[i, ]
-  if(nrow(stats) > keep.nstats)
-  {
-    i <- 1:keep.nstats
-    stats <- stats[i, ]
-  }
-  
-  rownames(stats) <- NULL
-  
-  stats
-  
+     stats <- stats[i, ]
+    if(nrow(stats) > keep.nstats)
+    {
+      i <- 1:keep.nstats
+      stats <- stats[i, ]
+    }
+    
+    rownames(stats) <- NULL
+    
+    stats
+  }else{
+    list<- make.inverseStep(lag) #obtiene la matriz de retrasos a partir del escalon inverso
+    inverse.step.lags <- list$inverse.step.lags
+    inverse.step <- list$inverse.step
+    output = apply(parameter, 1,function(p) training(p,lag,fold,input.var.names,output.var.names,signal.train,signal.test,inputs,inverse.step.lags,inverse.step,step.test))
+    stats.list <- lapply(output, function(l) l[[2]])
+    stats <- do.call(rbind, stats.list)
+    colnames(stats) <- c("MABP","CBFV","nu","cost","train.cor","test.cor","fold","stepTest")
+    rownames(stats) <- NULL
+    stats
+  } 
 }
