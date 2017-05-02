@@ -66,6 +66,8 @@ process.parallel <- function(
       nu = nu,
       cost = cost
     )
+    lags.df <- expand.grid(lags, KEEP.OUT.ATTRS = FALSE)
+    lag.list = t(lags.df)
     result<-get.results(
       parametros,
       lags = lag.list,
@@ -87,35 +89,37 @@ run<- function(
   
   nworkers =detectCores(),#pueden ser m?x 48, pero con 32 o 16 andar? bien
   src.basenames = c(
-                    'ALSA',
-                    'ANGL',
-                    'ARVA',
-                    'BYLA',
-                    'CLSE',
-                    'DAOC',
-                    'DASI',
-                    'GAGO',
-                    'JOBO',
-                    'FEBE',
-                    'FEGA',
-                    'HEMU',
-                    'HEFU',
-                    'SEVE',
-                    'GOAC',
-                    'JULE',
-                    'LACA',
-                    'LMAR',
-                    'MAIN',
-                    'ROMI',
-                    'ROAL',
-                    'PAAR',
-                    'MIMO',
-                    'NIGA',
-                    'MIRA',
-                    'CLHE',
-                    'DABA',
-                    'HC036101',
-                    'HC061101'
+    'ALSA',
+    'ANGL',
+    'ARVA',
+    'BYLA',
+    'CLSE',
+    'DAOC',
+    'DASI',
+    'GAGO',
+    'JOBO',
+    'FEBE',
+    'FEGA',
+    'HEMU',
+    'HEFU',
+    'SEVE',
+    'GOAC',
+    'JULE',
+    'LACA',
+    'LMAR',
+    'MAIN',
+    'ROMI',
+    'ROAL',
+    'PAAR',
+    'MIMO',
+    'NIGA',
+    'MIRA',
+    'CLHE',
+    'DABA',
+    'HC036101',
+    'HC061101'
+
+   
                     ),
   src.ext = "txt",
   tgt.ext = "RData",
@@ -133,10 +137,10 @@ run<- function(
   dir.create(tgt.dir, showWarnings = FALSE, recursive = TRUE)
   dir.create(tgt2.dir, showWarnings = FALSE, recursive = TRUE)
 
-#   cost <- 1024
-#   nu <- 0.5
-#   lags <- list(MABP = 7,CBFV = 3,fold = 1)
-  
+  # cost <- 4
+  # nu <- 0.2
+  # lags <- list(MABP = 7,CBFV = 3,fold = 2)
+
   cost2 <- 2^seq(-2, 10, 1)
   cost <- c(cost2,10000)
   nu <- seq(0.1, 0.9, 0.1)

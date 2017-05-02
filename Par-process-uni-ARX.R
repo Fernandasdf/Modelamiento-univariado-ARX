@@ -38,38 +38,41 @@ inverse.step.test <- function(
   }
   #
   #
-  start <- max(unlist(lag)) +1
+  start <- max(unlist(lag))
   y <-  y[start:length(y$CBFV),1]
   pred <- response.ARX.model
   pred <- round(pred, 3)
   #test.cor.step <- cor(pred,y)
   #print(test.cor.step)
   ts = 0.6
-  before.drop = 10.2 #seconds
+  before.drop = 5.4 #seconds
   step.duration = 42 #seconds
   step.length = step.duration/ts
   #fin = 300*time.sample
   half.step = floor(length(inverse.step[,1])/2)
-  ajuste = pred[half.step-before.drop/ts] - 0.8
+  corte =  max(unlist(lag)) +3
+  ajuste = pred[half.step-before.drop/ts-10] - 0.8 #238 total y 113 base 236 111
  
-  pred <- pred[(half.step-before.drop/ts):(half.step-before.drop/ts+step.length)]-ajuste
+  pred <- pred[(length(pred)-134):(-corte+half.step-(before.drop/ts)+step.length)]-ajuste
   
-  caida <- min(pred[1:((before.drop+3.6)/ts)])
+  caida <- min(pred[1:((before.drop+4.8)/ts)])
   varEstabilizacion <- var(pred[((before.drop+12)/ts):((before.drop+24)/ts)])
   maximo <- max(pred[1:((before.drop+30)/ts)])
   avgEstable <- mean(pred[((before.drop+12)/ts):((before.drop+30)/ts)])
   stepTest=0
   list <- NULL
-  if(caida<=0.5 && caida>=-0.2 && varEstabilizacion<0.002 && maximo <=1.2 && avgEstable>caida){
+  if(caida<=0.5 && caida>=-0.2 && maximo <=1.2 && avgEstable>caida){
     stepTest=1
     #print("condicion de salida!")
     time <- seq(0.6,length(pred),0.6)
     largo.step <- nrow(inverse.step)
     ajuste.escalon <- 35/ts
     largo.step <- largo.step - ajuste.escalon
+    ABP = inverse.step$MABP[(half.step-(before.drop/ts)):(half.step-(before.drop/ts)+largo.step)]
     df <- data.frame(pred = pred,
                      time = time[1:length(pred)],
-                     ABP = inverse.step$MABP[(largo.step-length(pred)+1):largo.step])
+                     #ABP = inverse.step$MABP[(largo.step-length(pred)+1):largo.step])
+                     ABP = ABP[1:length(pred)])
     title <- paste('Step response subject: ',name.subject)
     plot<-ggplot(df, aes(x=time)) +
       geom_line(aes(y=ABP, colour = "ABP inverse step")) +
@@ -83,13 +86,22 @@ inverse.step.test <- function(
 
 
     #print(plot)
-    ggsave(paste(getwd(),'/graficos/stepResponse_',name.subject,'.jpg',sep=""), width = 8,height = 7)
+    ggsave(filename=paste(getwd(),'/graficos/stepResponse_',name.subject,'.pdf',sep=""), plot=plot,width = 9,height = 7)
+    ggsave(file=paste(getwd(),'/graficos/stepResponse_',name.subject,'.jpg',sep=""), plot=plot,width = 9,height = 7)
     
+    df <- data.frame(ABP = ABP[1:length(pred)],
+                     CBFV = pred
+    )
+    write.table(df,file=paste(getwd(),'/graficos/stepResponse_',name.subject,'.txt',sep=""),sep="\t",row.names=FALSE)
+      
   }
+ 
+  
   
   list<-list("stepTest"=stepTest)
   
 }
+
 make.inverseStep <- function(
   lag
 ){
